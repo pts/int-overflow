@@ -1,26 +1,32 @@
-/* !! detect signed type */
-/* !! subtraction? */
-/* !! works if signed types are allowed to overflow (not in C), needs gcc
- *    -fwarpv  or -fno-strict-overflow */
-/* !! https://www.securecoding.cert.org/confluence/display/seccode/INT32-C.+Ensure+that+operations+on+signed+integers+do+not+result+in+overflow?showComments=false */
-/* !! http://p99.gforge.inria.fr/p99-html/ */
-
-/* !! ({ and __typeof__ are gcc-specific */
-/* !! clang? */
+#ifndef _INT_OVERFLOW_H
+#define _INT_OVERFLOW_H 1
 
 #undef MAX_INT_SIZE
+#ifdef __cplusplus  /* g++-4.6 doesn't have __builtin_choose_expr. */
+static inline unsigned TO_UNSIGNED_LOW(int x) { return x; } 
+static inline unsigned TO_UNSIGNED_LOW(unsigned x) { return x; } 
+static inline unsigned long long TO_UNSIGNED_LOW(long long x) { return x; } 
+static inline unsigned long long TO_UNSIGNED_LOW(unsigned long long x) { return x; } 
+#endif
 #if __SIZEOF_INT128__ >= 16 || ((__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1)) && __SIZEOF_SIZE_T__ >= 8)
+#ifdef __cplusplus  /* g++-4.6 doesn't have __builtin_choose_expr. */
+static inline __uint128_t TO_UNSIGNED_LOW(__int128_t x) { return x; } 
+static inline __uint128_t TO_UNSIGNED_LOW(__uint128_t x) { return x; } 
+#else
 #define TO_UNSIGNED_LOW(x) ( \
     __builtin_choose_expr(sizeof(x) <= sizeof(int), (unsigned)(x), \
     __builtin_choose_expr(sizeof(x) <= sizeof(long long), (unsigned long long)(x), \
     __builtin_choose_expr(sizeof(x) <= sizeof(__int128_t), (__uint128_t)(x), \
     (void)0))))  /* Compile-time error when assigned to something. */
+#endif
 #define MAX_INT_SIZE (sizeof(long long) > sizeof(__int128_t) ? sizeof(long long) : sizeof(__int128_t))
 #else
+#ifndef __cplusplus
 #define TO_UNSIGNED_LOW(x) ( \
     __builtin_choose_expr(sizeof(x) <= sizeof(int), (unsigned)(x), \
     __builtin_choose_expr(sizeof(x) <= sizeof(long long), (unsigned long long)(x), \
     (void)0)))  /* Compile-time error when assigned to something. */
+#endif
 #define MAX_INT_SIZE (sizeof(long long))
 #endif
 /* Converts to the the corresponding (or a bit larger) unsigned type.
@@ -76,44 +82,4 @@
     (int)((((~_x & _y) | ((~_x | _y) & _s)) >> (sizeof(_x) * 8 - 1)) & 1) : \
     (int)((((_x ^ _y) & (_s ^ _x)) >> (sizeof(_x) * 8 - 1)) & 1); }))
 
-#include <stdio.h>
-
-int main(int argc, char **argv) {
-  const char cx = 100, cy = 50, cz = -50;
-  const unsigned char ucx = 200, ucy = 100;
-  const short sx = 100, sy = 50;
-  const unsigned short usx = 200, usy = 100;
-  (void)argc; (void)argv;
-  printf("%d,%d,%d\n",  /* 1,1,0 */
-      is_add_overflow(cx, cy, 0),
-      is_add_overflow(cx, cx, 0),
-      is_add_overflow(cy, cy, 0));
-  printf("%d,%d,%d\n",  /* 1,1,0 */
-      is_add_overflow(ucx, ucy, 0),
-      is_add_overflow(ucx, ucx, 0),
-      is_add_overflow(ucy, ucy, 0));
-  printf("%d,%d,%d,%d\n",  /* 0,1,0,0 */
-      is_subtract_overflow(ucx, ucy, 0),
-      is_subtract_overflow(ucy, ucx, 0),
-      is_subtract_overflow(ucx, ucx, 0),
-      is_subtract_overflow(ucy, ucy, 0));
-  printf("%d,%d,%d,%d,%d\n",  /* 1,0,0,0,0 */
-      is_subtract_overflow(cx, cz, 0),
-      is_subtract_overflow(cx, cy, 0),
-      is_subtract_overflow(cy, cx, 0),
-      is_subtract_overflow(cx, cx, 0),
-      is_subtract_overflow(cy, cy, 0));
-  printf("%d,%d,%d\n",  /* 0,0,0 */
-      is_add_overflow(sx, sy, 0),
-      is_add_overflow(sx, sx, 0),
-      is_add_overflow(sy, sy, 0));
-  printf("%d,%d,%d\n",  /* 0,0,0 */
-      is_add_overflow(usx, usy, 0),
-      is_add_overflow(usx, usx, 0),
-      is_add_overflow(usy, usy, 0));
-  printf("%d,%d,%d\n",  /* 1,1,0 */
-      is_add_overflow(-3U, 4U, 0),
-      is_add_overflow(-3U, 3U, 0),
-      is_add_overflow(-3U, 2U, 0));
-  return 0;
-}
+#endif  /* INT_OVERFLOW_H */
