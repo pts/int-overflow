@@ -66,7 +66,7 @@ static inline __uint128_t TO_UNSIGNED_LOW(__uint128_t x) { return x; }
     __typeof__(x) _x = (x), _y = (y), _s = \
         (__typeof__(x))(to_unsigned(_x) + _y + (c)); \
     is_unsigned(_x) ? \
-    (int)((((_x & _y) | ((_x | _y) & ~_s)) >> (sizeof(_x) * 8 - 1)) & 1) : \
+    (int)((((_x & _y) | ((_x | _y) & ~_s)) >> (sizeof(_x) * 8 - 1))) : \
     (int)((((_s ^ _x) & (_s ^ _y)) >> (sizeof(_x) * 8 - 1)) & 1); }))
 
 /* Returns (int)0 or (int)1 indicating whether the subtraction x - y - c would
@@ -79,7 +79,7 @@ static inline __uint128_t TO_UNSIGNED_LOW(__uint128_t x) { return x; }
     __typeof__(x) _x = (x), _y = (y), _s = \
         (__typeof__(x))(to_unsigned(_x) - _y - (c)); \
     is_unsigned(_x) ? \
-    (int)((((~_x & _y) | ((~_x | _y) & _s)) >> (sizeof(_x) * 8 - 1)) & 1) : \
+    (int)((((~_x & _y) | ((~_x | _y) & _s)) >> (sizeof(_x) * 8 - 1))) : \
     (int)((((_x ^ _y) & (_s ^ _x)) >> (sizeof(_x) * 8 - 1)) & 1); }))
 
 #endif  /* INT_OVERFLOW_H */
